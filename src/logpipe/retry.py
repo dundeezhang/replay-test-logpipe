@@ -64,7 +64,7 @@ class RetryPolicy:
         """Seconds to wait after failed attempt number ``attempt`` (1-based)."""
         if retry_after is not None:
             return retry_after
-        delay = self.base_delay * self.multiplier ** (attempt - 1)
+        delay = min(self.base_delay * self.multiplier ** (attempt - 1), self.max_delay)
         if self.jitter:
             delay += random.uniform(0, delay * self.jitter)
         return delay

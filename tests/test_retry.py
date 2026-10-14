@@ -24,6 +24,11 @@ def test_exponential_delays_without_jitter():
     assert [policy.delay_for(n) for n in (1, 2, 3, 4)] == [1.0, 2.0, 4.0, 8.0]
 
 
+def test_backoff_is_capped_at_max_delay():
+    policy = RetryPolicy(base_delay=1.0, max_delay=10.0, jitter=0)
+    assert [policy.delay_for(n) for n in (3, 4, 5, 20)] == [4.0, 8.0, 10.0, 10.0]
+
+
 def test_jitter_only_adds_time():
     policy = RetryPolicy(base_delay=1.0, jitter=0.5)
     for _ in range(50):
