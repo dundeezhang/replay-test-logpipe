@@ -28,13 +28,20 @@ your install.
 
 ## Input formats
 
-| Name     | Description                                                   |
-| -------- | ------------------------------------------------------------- |
-| `jsonl`  | One JSON object per line (`timestamp`/`time`/`ts`, `message`) |
-| `syslog` | BSD syslog (RFC 3164), with or without the `<PRI>` prefix     |
+| Name       | Description                                                   |
+| ---------- | ------------------------------------------------------------- |
+| `combined` | nginx/Apache combined or common access log                    |
+| `jsonl`    | One JSON object per line (`timestamp`/`time`/`ts`, `message`) |
+| `syslog`   | BSD syslog (RFC 3164), with or without the `<PRI>` prefix     |
 
 Lines that fail to parse are skipped and counted; pass `--strict` to stop at
 the first bad line instead.
+
+The `combined` parser maps HTTP status codes to levels (5xx is `error`, 4xx is
+`warning`) and stores the request, status, size, referer and user agent in the
+record fields. An nginx `$request_time` appended to the line is captured as
+`request_time`, and Apache's `vhost_combined` layout is supported with the
+`vhost = true` option.
 
 ## Stages
 
