@@ -78,7 +78,9 @@ type = "file"
 path = "/var/lib/logpipe/out.jsonl"
 ```
 
-Command-line flags take precedence over the config file.
+`LOGPIPE_LOG_LEVEL`, `LOGPIPE_INPUT_FORMAT`, `LOGPIPE_INPUT_PATHS`,
+`LOGPIPE_INPUT_STRICT`, `LOGPIPE_SINK_TYPE` and `LOGPIPE_SINK_<OPTION>` override
+the config file; command-line flags take precedence over both.
 
 ## Development
 

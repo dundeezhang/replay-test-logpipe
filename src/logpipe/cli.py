@@ -8,7 +8,14 @@ import sys
 from collections.abc import Sequence
 
 from logpipe import __version__
-from logpipe.config import Config, ConfigError, SinkConfig, load_config
+from logpipe.config import (
+    Config,
+    ConfigError,
+    SinkConfig,
+    apply_env_overrides,
+    describe,
+    load_config,
+)
 from logpipe.inputs import read_records
 from logpipe.parsers import ParseError, available_parsers
 from logpipe.pipeline import Pipeline
@@ -44,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _resolve_config(args: argparse.Namespace) -> Config:
     cfg = load_config(args.config) if args.config else Config()
+    apply_env_overrides(cfg)
     if args.format:
         cfg.input.format = args.format
     if args.paths:
@@ -72,6 +80,7 @@ def _configure_logging(level: str, verbose: int) -> None:
 def _cmd_run(args: argparse.Namespace) -> int:
     cfg = _resolve_config(args)
     _configure_logging(cfg.log_level, args.verbose)
+    log.info("effective configuration: %s", describe(cfg))
     stages = [build_stage(spec) for spec in cfg.stages]
     sink = build_sink(cfg.sink.type, **cfg.sink.options)
     records = read_records(

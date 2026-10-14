@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import json
+import os
 import tomllib
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
 _LOG_LEVELS = ("debug", "info", "warning", "error", "critical")
+_SINK_ENV_PREFIX = "LOGPIPE_SINK_"
 
 
 class ConfigError(ValueError):
@@ -102,3 +106,46 @@ def load_config(path: str | Path) -> Config:
     except tomllib.TOMLDecodeError as exc:
         raise ConfigError(f"{path}: {exc}") from exc
     return config_from_dict(data)
+
+
+def _coerce(value: str) -> Any:
+    """Best-effort conversion of an environment string to bool/int/float."""
+    if value.lower() in ("true", "false"):
+        return value.lower() == "true"
+    for cast in (int, float):
+        try:
+            return cast(value)
+        except ValueError:
+            pass
+    return value
+
+
+def apply_env_overrides(cfg: Config, environ: Mapping[str, str] | None = None) -> Config:
+    """Override ``cfg`` in place from ``LOGPIPE_*`` environment variables.
+
+    Recognised: ``LOGPIPE_LOG_LEVEL``, ``LOGPIPE_INPUT_FORMAT``,
+    ``LOGPIPE_INPUT_PATHS`` (comma-separated), ``LOGPIPE_INPUT_STRICT``,
+    ``LOGPIPE_SINK_TYPE`` and ``LOGPIPE_SINK_<OPTION>`` for any sink option.
+    """
+    env = os.environ if environ is None else environ
+    if level := env.get("LOGPIPE_LOG_LEVEL"):
+        if level.lower() not in _LOG_LEVELS:
+            raise ConfigError(f"LOGPIPE_LOG_LEVEL must be one of {', '.join(_LOG_LEVELS)}")
+        cfg.log_level = level.lower()
+    if fmt := env.get("LOGPIPE_INPUT_FORMAT"):
+        cfg.input.format = fmt
+    if paths := env.get("LOGPIPE_INPUT_PATHS"):
+        cfg.input.paths = [p.strip() for p in paths.split(",") if p.strip()]
+    if (strict := env.get("LOGPIPE_INPUT_STRICT")) is not None:
+        cfg.input.strict = bool(strict)
+    if sink_type := env.get("LOGPIPE_SINK_TYPE"):
+        cfg.sink.type = sink_type
+    for key, value in env.items():
+        if key.startswith(_SINK_ENV_PREFIX) and key != "LOGPIPE_SINK_TYPE":
+            cfg.sink.options[key.removeprefix(_SINK_ENV_PREFIX).lower()] = _coerce(value)
+    return cfg
+
+
+def describe(cfg: Config) -> str:
+    """One-line JSON summary of the effective configuration, for startup logs."""
+    return json.dumps(asdict(cfg), sort_keys=True, default=str)

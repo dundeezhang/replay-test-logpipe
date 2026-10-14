@@ -26,3 +26,11 @@ def test_formats_lists_everything(capsys):
     out = capsys.readouterr().out
     assert "syslog" in out
     assert "stdout" in out
+
+
+def test_env_overrides_apply_to_run(tmp_path, monkeypatch, capsys):
+    src = tmp_path / "app.log"
+    src.write_text('{"time": "2024-05-01T10:00:00Z", "msg": "hello"}\n')
+    monkeypatch.setenv("LOGPIPE_INPUT_FORMAT", "jsonl")
+    assert main(["run", "-o", "json", str(src)]) == 0
+    assert json.loads(capsys.readouterr().out)["message"] == "hello"
