@@ -1,6 +1,12 @@
 import pytest
 
-from logpipe.config import ConfigError, config_from_dict, load_config
+from logpipe.config import (
+    Config,
+    ConfigError,
+    apply_env_overrides,
+    config_from_dict,
+    load_config,
+)
 
 EXAMPLE = """
 log_level = "info"
@@ -61,3 +67,41 @@ def test_invalid_configs(data):
 def test_missing_file(tmp_path):
     with pytest.raises(ConfigError, match="not found"):
         load_config(tmp_path / "nope.toml")
+
+
+def test_env_overrides():
+    cfg = config_from_dict({"input": {"format": "syslog"}, "sink": {"type": "stdout"}})
+    apply_env_overrides(
+        cfg,
+        {
+            "LOGPIPE_LOG_LEVEL": "DEBUG",
+            "LOGPIPE_INPUT_FORMAT": "jsonl",
+            "LOGPIPE_INPUT_PATHS": "/var/log/a.log, /var/log/b.log",
+            "LOGPIPE_INPUT_STRICT": "true",
+            "LOGPIPE_SINK_TYPE": "http",
+            "LOGPIPE_SINK_URL": "https://collector.test/ingest",
+            "LOGPIPE_SINK_BATCH_SIZE": "100",
+            "LOGPIPE_SINK_COMPRESS": "false",
+            "HOME": "/root",
+        },
+    )
+    assert cfg.log_level == "debug"
+    assert cfg.input.format == "jsonl"
+    assert cfg.input.paths == ["/var/log/a.log", "/var/log/b.log"]
+    assert cfg.input.strict is True
+    assert cfg.sink.type == "http"
+    assert cfg.sink.options == {
+        "url": "https://collector.test/ingest",
+        "batch_size": 100,
+        "compress": False,
+    }
+
+
+@pytest.mark.parametrize(("value", "expected"), [("0", False), ("false", False), ("YES", True)])
+def test_env_strict_flag(value, expected):
+    assert apply_env_overrides(Config(), {"LOGPIPE_INPUT_STRICT": value}).input.strict is expected
+
+
+def test_env_log_level_is_validated():
+    with pytest.raises(ConfigError, match="LOGPIPE_LOG_LEVEL"):
+        apply_env_overrides(Config(), {"LOGPIPE_LOG_LEVEL": "loud"})
