@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "logpipe"
+version = "0.3.0"
+description = "Composable log ingestion and processing pipeline"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Dundee Zhang" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Logging",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.2", "ruff>=0.5", "mypy>=1.10"]
+
+[project.scripts]
+logpipe = "logpipe.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/logpipe"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/logpipe"]
