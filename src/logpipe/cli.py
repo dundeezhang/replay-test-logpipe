@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from collections.abc import Sequence
+import time
+from collections.abc import Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING
 
 from logpipe import __version__
 from logpipe.config import Config, ConfigError, SinkConfig, load_config
@@ -14,6 +16,10 @@ from logpipe.parsers import ParseError, available_parsers
 from logpipe.pipeline import Pipeline
 from logpipe.sinks import available_sinks, build_sink
 from logpipe.stages import available_stages, build_stage
+
+if TYPE_CHECKING:
+    from logpipe.aggregate import AggregateRow, Aggregator
+    from logpipe.record import LogRecord
 
 log = logging.getLogger("logpipe")
 
@@ -39,6 +45,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     sub.add_parser("formats", help="list input formats, stages and sinks")
+
+    agg = sub.add_parser("aggregate", help="summarise logs per time window")
+    _add_input_args(agg)
+    agg.add_argument(
+        "-w", "--window", type=float, default=60.0, help="window width in seconds (default: 60)"
+    )
+    agg.add_argument(
+        "-g", "--group-by", default="", help="comma-separated fields to group by, e.g. level,host"
+    )
+    agg.add_argument("-m", "--metric", help="numeric field to summarise, e.g. request_time")
+    agg.add_argument(
+        "-p", "--percentiles", default="50,90,99", help="percentiles reported for --metric"
+    )
+    agg.add_argument(
+        "--lateness", type=float, default=0.0, help="seconds to wait for out-of-order records"
+    )
+    agg.add_argument("--report", choices=["table", "jsonl", "csv"], default="table")
+    agg.add_argument("--csv-path", help="output file for --report csv")
     return parser
 
 
@@ -92,12 +116,79 @@ def _cmd_formats(args: argparse.Namespace) -> int:
     return 0
 
 
+def _split_list(value: str) -> list[str]:
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def _aggregate(
+    aggregator: Aggregator, records: Iterable[LogRecord], *, live: bool
+) -> Iterator[AggregateRow]:
+    """Feed records through the aggregator, yielding rows as windows close.
+
+    For live input (stdin) windows are also closed on wall-clock time, so a
+    window is reported once it is over even if the event-time watermark lags
+    behind, e.g. because the source only logs sporadically.
+    """
+    last_tick = time.monotonic()
+    for record in records:
+        yield from aggregator.add(record)
+        if live and time.monotonic() - last_tick >= 1.0:
+            last_tick = time.monotonic()
+            yield from aggregator.flush_expired()
+    yield from aggregator.finish()
+
+
+def _cmd_aggregate(args: argparse.Namespace) -> int:
+    # Imported lazily to keep `logpipe run` start-up fast.
+    from logpipe.aggregate import Aggregator
+    from logpipe.aggregate.report import render_table, write_csv, write_jsonl
+
+    cfg = _resolve_config(args)
+    _configure_logging(cfg.log_level, args.verbose)
+    if args.report == "csv" and not args.csv_path:
+        raise ValueError("--report csv requires --csv-path")
+
+    aggregator = Aggregator(
+        args.window,
+        group_by=_split_list(args.group_by),
+        metric=args.metric,
+        percentiles=[float(p) for p in _split_list(args.percentiles)],
+        allowed_lateness=args.lateness,
+    )
+    records: Iterable[LogRecord] = read_records(
+        cfg.input.paths, cfg.input.format, strict=cfg.input.strict, encoding=cfg.input.encoding
+    )
+    for spec in cfg.stages:
+        records = build_stage(spec).process(records)
+    rows = _aggregate(aggregator, records, live="-" in cfg.input.paths)
+
+    if args.report == "jsonl":
+        write_jsonl(rows, sys.stdout, flush=True)
+    elif args.report == "csv":
+        written = write_csv(rows, args.csv_path)
+        log.info("wrote %d row(s) to %s", written, args.csv_path)
+    else:
+        render_table(rows, sys.stdout)
+
+    if aggregator.late_records:
+        log.warning(
+            "ignored %d record(s) that arrived after their window closed",
+            aggregator.late_records,
+        )
+    if args.metric and aggregator.non_numeric:
+        log.warning(
+            "%d record(s) had a missing or non-numeric %s", aggregator.non_numeric, args.metric
+        )
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     handlers = {
         "run": _cmd_run,
         "formats": _cmd_formats,
+        "aggregate": _cmd_aggregate,
     }
     try:
         return handlers[args.command](args)

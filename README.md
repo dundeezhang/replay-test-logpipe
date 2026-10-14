@@ -60,6 +60,34 @@ Exactly one sink is configured per pipeline.
 Sinks are flushed and closed when the input is exhausted, including when the
 pipeline stops because of an error.
 
+## Aggregation
+
+`logpipe aggregate` summarises records per fixed time window instead of
+forwarding them. Windows are aligned to the Unix epoch in UTC, so 60 second
+windows always start on the minute.
+
+```sh
+# Requests per minute and latency percentiles, split by status class
+logpipe aggregate -f combined -w 60 -g status -m request_time access.log
+
+# Error counts per host in 5 minute windows, as JSON lines
+logpipe aggregate -f syslog -w 300 -g host --report jsonl /var/log/syslog
+```
+
+| Option          | Meaning                                                      |
+| --------------- | ------------------------------------------------------------ |
+| `-w/--window`   | window width in seconds; must divide a day evenly            |
+| `-g/--group-by` | comma-separated record fields (`level`, `host`, `http.code`) |
+| `-m/--metric`   | numeric field to summarise (count, sum, min, max, mean)      |
+| `-p`            | percentiles to report for the metric (default `50,90,99`)    |
+| `--lateness`    | seconds to keep a window open for out-of-order records       |
+| `--report`      | `table` (default), `jsonl`, or `csv` with `--csv-path`       |
+
+A window is reported once a record more than `--lateness` seconds past its end
+has been seen; records that arrive after that are counted and ignored. When
+reading from stdin, windows are also closed on wall-clock time so live tails
+keep producing output.
+
 ## Configuration
 
 ```toml
