@@ -70,9 +70,9 @@ The bearer token is read from the environment variable named by `token_env`
 `[sink.headers]` table.
 
 Network errors and `408`, `425`, `429` and `5xx` responses are retried with
-exponential backoff, honouring `Retry-After`. By default the sink keeps
-retrying until the collector accepts the batch; set `max_attempts` to give up
-earlier. Batches that cannot be delivered are written to `spool_dir` if it is
+exponential backoff (capped at `max_backoff` seconds, default 30), honouring
+`Retry-After`. By default the sink keeps retrying until the collector accepts
+the batch; set `max_attempts` to give up earlier. Batches that cannot be delivered are written to `spool_dir` if it is
 set (and dropped otherwise) and can be re-sent later with
 `HttpSink.replay_spool()`. See [`examples/http-shipper.toml`](examples/http-shipper.toml).
 

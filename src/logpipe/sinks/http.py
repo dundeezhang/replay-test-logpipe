@@ -94,6 +94,7 @@ class HttpSink(Sink):
         compress: bool = True,
         timeout: float = 10.0,
         max_attempts: int | None = None,
+        max_backoff: float = 30.0,
         spool_dir: str | None = None,
         transport: Transport | None = None,
         clock: Callable[[], float] = time.monotonic,
@@ -126,7 +127,7 @@ class HttpSink(Sink):
         if token:
             self._headers["Authorization"] = f"Bearer {token}"
 
-        self._retry = RetryPolicy(max_attempts=max_attempts)
+        self._retry = RetryPolicy(max_attempts=max_attempts, max_delay=max_backoff)
         self._spool = Spool(spool_dir) if spool_dir else None
         self._transport: Transport = transport or urllib_transport
         self._clock = clock

@@ -170,6 +170,15 @@ def test_retries_retryable_statuses(make_record, sleeps):
     assert sink.sent_records == 1
 
 
+def test_backoff_respects_max_backoff(make_record, sleeps):
+    transport = FakeTransport(*[Response(503)] * 6)
+    sink = make_sink(transport, sleeps, max_backoff=2.0)
+    sink.write(make_record())
+    sink.close()
+    assert len(transport.requests) == 7
+    assert max(sleeps) <= 2.0 * 1.1
+
+
 def test_transport_errors_are_retried(make_record, sleeps):
     transport = FakeTransport(urllib.error.URLError("connection refused"), Response(200))
     sink = make_sink(transport, sleeps)
