@@ -52,10 +52,29 @@ path into the parsed fields, e.g. `http.status`.
 
 Exactly one sink is configured per pipeline.
 
-| Type     | Options                      |
-| -------- | ---------------------------- |
-| `file`   | `path`, `format`, `encoding` |
-| `stdout` | `format` (`text` or `json`)  |
+| Type     | Options                                                        |
+| -------- | -------------------------------------------------------------- |
+| `file`   | `path`, `format`, `encoding`                                   |
+| `http`   | `url`, `token_env`, `batch_size`, `spool_dir`, ... (see below) |
+| `stdout` | `format` (`text` or `json`)                                    |
+
+### HTTP sink
+
+The `http` sink POSTs records to a collector in batches, as gzip-compressed
+newline-delimited JSON by default (`encoding = "json"` sends a JSON array
+instead). A batch is sent when it reaches `batch_size` records (default 500),
+`batch_bytes` bytes (default 1 MB) or `flush_interval` seconds (default 5).
+
+The bearer token is read from the environment variable named by `token_env`
+(default `LOGPIPE_TOKEN`); extra request headers can be set in a
+`[sink.headers]` table.
+
+Network errors and `408`, `425`, `429` and `5xx` responses are retried with
+exponential backoff, honouring `Retry-After`. By default the sink keeps
+retrying until the collector accepts the batch; set `max_attempts` to give up
+earlier. Batches that cannot be delivered are written to `spool_dir` if it is
+set (and dropped otherwise) and can be re-sent later with
+`HttpSink.replay_spool()`. See [`examples/http-shipper.toml`](examples/http-shipper.toml).
 
 Sinks are flushed and closed when the input is exhausted, including when the
 pipeline stops because of an error.

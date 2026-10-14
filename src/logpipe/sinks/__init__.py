@@ -40,4 +40,5 @@ def available_sinks() -> list[str]:
 __all__ = ["available_sinks", "build_sink", "register_sink"]
 
 # Built-in sinks register themselves on import.
+from logpipe.sinks import http  # noqa: E402,F401
 from logpipe.sinks import stream  # noqa: E402,F401

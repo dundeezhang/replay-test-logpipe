@@ -1,0 +1,26 @@
+# Ship warnings and errors from the local syslog to a central collector.
+#
+#   export LOGPIPE_TOKEN=...   # collector API token
+#   logpipe run -c examples/http-shipper.toml
+
+log_level = "info"
+
+[input]
+format = "syslog"
+paths = ["/var/log/syslog", "/var/log/auth.log"]
+
+[[stages]]
+type = "level"
+min = "warning"
+
+[sink]
+type = "http"
+url = "https://logs.example.internal/v1/ingest"
+token_env = "LOGPIPE_TOKEN"
+batch_size = 200
+flush_interval = 2.0
+max_attempts = 8
+spool_dir = "/var/spool/logpipe"
+
+[sink.headers]
+X-Logpipe-Shipper = "syslog-edge"
