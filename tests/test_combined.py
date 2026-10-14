@@ -58,6 +58,13 @@ def test_level_follows_status(status, level):
     assert get_parser("combined").parse_line(line).level is level
 
 
+def test_dash_size_means_no_body():
+    line = '10.0.0.1 - - [14/Oct/2024:09:00:00 +0000] "GET /logo.png HTTP/1.1" 304 - "-" "curl/8.5.0"'
+    record = get_parser("combined").parse_line(line)
+    assert record.fields["bytes"] == 0
+    assert record.fields["status"] == 304
+
+
 def test_empty_request_line():
     line = '192.0.2.10 - - [14/Oct/2024:09:12:13 +0000] "-" 408 0 "-" "-"'
     record = get_parser("combined").parse_line(line)

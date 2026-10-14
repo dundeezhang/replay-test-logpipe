@@ -103,7 +103,8 @@ class CombinedLogParser(Parser):
         fields: dict[str, Any] = {
             "remote_addr": match["remote_addr"],
             "status": status,
-            "bytes": int(match["size"]),
+            # Apache logs "-" instead of 0 for responses without a body (e.g. 304).
+            "bytes": 0 if match["size"] == "-" else int(match["size"]),
         }
         fields.update(_split_request(match["request"]))
         if user := _none_if_dash(match["remote_user"]):
