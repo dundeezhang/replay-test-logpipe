@@ -42,6 +42,7 @@ Stages are applied in the order they appear in the config file.
 
 | Type    | Options                                     | Effect                           |
 | ------- | ------------------------------------------- | -------------------------------- |
+| `dedup` | `window`, `max_keys`                        | suppress repeats within `window` |
 | `level` | `min`                                       | drop records below `min`         |
 | `match` | `pattern`, `field`, `invert`, `ignore_case` | keep records whose field matches |
 
