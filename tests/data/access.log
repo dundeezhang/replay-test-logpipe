@@ -1,0 +1,10 @@
+203.0.113.7 - - [14/Oct/2024:09:12:01 +0000] "GET / HTTP/1.1" 200 5321 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0"
+203.0.113.7 - - [14/Oct/2024:09:12:01 +0000] "GET /static/app.css HTTP/1.1" 200 18234 "https://example.com/" "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0"
+198.51.100.23 - alice [14/Oct/2024:09:12:04 +0000] "POST /api/v1/orders?dry_run=1 HTTP/1.1" 201 512 "https://example.com/checkout" "curl/8.5.0" 0.084
+198.51.100.23 - alice [14/Oct/2024:09:12:05 +0000] "GET /api/v1/orders/9921 HTTP/1.1" 404 97 "-" "curl/8.5.0" 0.003
+192.0.2.44 - - [14/Oct/2024:09:12:09 +0000] "GET /healthz HTTP/1.0" 200 2 "-" "kube-probe/1.30"
+192.0.2.10 - - [14/Oct/2024:09:12:11 +0000] "GET /api/v1/reports HTTP/2.0" 502 166 "-" "python-requests/2.32.3" 30.001
+192.0.2.10 - - [14/Oct/2024:09:12:13 +0000] "-" 408 0 "-" "-"
+192.0.2.99 - - [14/Oct/2024:09:12:20 +0000] "GET /wp-login.php HTTP/1.1" 404 153
+not an access log line
+198.51.100.23 - alice [14/Oct/2024:09:12:31 +0000] "DELETE /api/v1/orders/9921 HTTP/1.1" 204 0 "-" "curl/8.5.0" 0.012

@@ -33,5 +33,6 @@ def available_parsers() -> dict[str, str]:
 __all__ = ["ParseError", "Parser", "available_parsers", "get_parser", "register"]
 
 # Built-in parsers register themselves on import.
+from logpipe.parsers import combined  # noqa: E402,F401
 from logpipe.parsers import jsonlines  # noqa: E402,F401
 from logpipe.parsers import syslog  # noqa: E402,F401
