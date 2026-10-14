@@ -50,5 +50,6 @@ def available_stages() -> list[str]:
 __all__ = ["available_stages", "build_stage", "register_stage"]
 
 # Built-in stages register themselves on import.
+from logpipe.stages import dedup  # noqa: E402,F401
 from logpipe.stages import level  # noqa: E402,F401
 from logpipe.stages import match  # noqa: E402,F401
