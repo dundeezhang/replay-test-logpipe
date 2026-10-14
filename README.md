@@ -52,9 +52,26 @@ Stages are applied in the order they appear in the config file.
 | `dedup` | `window`, `max_keys`                        | suppress repeats within `window` |
 | `level` | `min`                                       | drop records below `min`         |
 | `match` | `pattern`, `field`, `invert`, `ignore_case` | keep records whose field matches |
+| `redact` | `rules`, `patterns`, `keys`, `fields`       | mask PII and secrets             |
 
 `field` accepts record attributes (`message`, `source`, `host`) or a dotted
 path into the parsed fields, e.g. `http.status`.
+
+`redact` masks email addresses, IPv4 addresses, card numbers (Luhn-checked),
+US SSNs, bearer tokens and `password=`/`token=`-style assignments in the
+message and in string fields. Fields named like `password`, `token` or
+`authorization` are replaced entirely; add more names with `keys`. Custom
+rules go in `patterns`:
+
+```toml
+[[stages]]
+type = "redact"
+keys = ["customer_name"]
+patterns = [{ name = "order", regex = 'ORD-\d{8}', replacement = "[ORDER]" }]
+```
+
+Redacted records drop their `raw` line because it still contains the original
+text.
 
 ## Sinks
 

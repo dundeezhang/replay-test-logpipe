@@ -53,3 +53,4 @@ __all__ = ["available_stages", "build_stage", "register_stage"]
 from logpipe.stages import dedup  # noqa: E402,F401
 from logpipe.stages import level  # noqa: E402,F401
 from logpipe.stages import match  # noqa: E402,F401
+from logpipe.stages import redact  # noqa: E402,F401
