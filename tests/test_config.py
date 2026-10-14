@@ -97,6 +97,11 @@ def test_env_overrides():
     }
 
 
+@pytest.mark.parametrize(("value", "expected"), [("0", False), ("false", False), ("YES", True)])
+def test_env_strict_flag(value, expected):
+    assert apply_env_overrides(Config(), {"LOGPIPE_INPUT_STRICT": value}).input.strict is expected
+
+
 def test_env_log_level_is_validated():
     with pytest.raises(ConfigError, match="LOGPIPE_LOG_LEVEL"):
         apply_env_overrides(Config(), {"LOGPIPE_LOG_LEVEL": "loud"})

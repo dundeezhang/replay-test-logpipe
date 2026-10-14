@@ -137,7 +137,7 @@ def apply_env_overrides(cfg: Config, environ: Mapping[str, str] | None = None) -
     if paths := env.get("LOGPIPE_INPUT_PATHS"):
         cfg.input.paths = [p.strip() for p in paths.split(",") if p.strip()]
     if (strict := env.get("LOGPIPE_INPUT_STRICT")) is not None:
-        cfg.input.strict = bool(strict)
+        cfg.input.strict = strict.strip().lower() in ("1", "true", "yes", "on")
     if sink_type := env.get("LOGPIPE_SINK_TYPE"):
         cfg.sink.type = sink_type
     for key, value in env.items():
